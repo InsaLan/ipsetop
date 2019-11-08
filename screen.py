@@ -1,10 +1,11 @@
 import curses
 
 class Screen:
-    def __init__(self, scr, config):
+    def __init__(self, scr):
         self.scr = scr
-        self.config = config
         self.scr.clear()
+        curses.curs_set(0)
+        curses.halfdelay(10)
 
     def draw_frame(self, data):
         self.scr.clear()
@@ -41,14 +42,12 @@ class Screen:
         return y-count-1
 
     def print_content(self, data, start, end):
-        max_val = 100*1024**2
         for i,user in enumerate(data["users"][:(end-start)//2]):
             self.print_user(user, i*2+start)
 
     def print_vpn(self, vpn, line):
-        max_val = 100*1024**2
         y,x = self.scr.getmaxyx()
-        name, (d1, d2, d3), (u1, u2 , u3) = vpn
+        name, (df, d1, d2, d3), (df, u1, u2 , u3) = vpn
 
         self.scr.addstr(line, 0, name)
         self.scr.addstr(line, 10, "│")
@@ -60,17 +59,16 @@ class Screen:
         down_text += pad(down_bw , len(down_text)-(x-13)//2)
         up_text = " =>"
         up_text += pad(up_bw , len(up_text)-(x-13)//2)
-        self.print_bar(line, 11, down_text, frac=d3/max_val)
-        self.print_bar(line, 11 + (x-10)//2, up_text, frac=u3/max_val)
+        self.print_bar(line, 11, down_text, frac=df)
+        self.print_bar(line, 11 + (x-10)//2, up_text, frac=df)
 
 
     def print_user(self, user, line):
-        max_val = 100*1024**2
         y,x = self.scr.getmaxyx()
 
         draw_width = x-27
 
-        name, (d1, d2, d3), (u1, u2 , u3), vpn = user
+        name, (df, d1, d2, d3), (uf, u1, u2 , u3), vpn = user
 
         down_bw = pad(format_bw(d1), -9) + pad(format_bw(d2), -9) + pad(format_bw(d3), -9)
         up_bw = pad(format_bw(u1), -9) + pad(format_bw(u2), -9) + pad(format_bw(u3), -9)
@@ -81,8 +79,8 @@ class Screen:
         up_text = pad("", draw_width//2-1) + "=>"
         up_text += pad(up_bw, len(up_text)-x)
 
-        self.print_bar(line, 0, down_text, d3/max_val)
-        self.print_bar(line+1, 0, up_text, u3/max_val)
+        self.print_bar(line, 0, down_text, df)
+        self.print_bar(line+1, 0, up_text, uf)
 
     def print_bar(self, y, x, text, frac=0):
         pos = int(len(text)*frac)
@@ -91,6 +89,8 @@ class Screen:
 
 
 def format_bw(val):
+    if val >= 1024**3*10:
+        return "{:.1f}gb".format(val/1024**3)
     if val >= 1024**2*10:
         return "{:.1f}mb".format(val/1024**2)
     elif val >= 1024*10:
