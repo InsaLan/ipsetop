@@ -16,7 +16,6 @@ class Screen:
         self.scr.refresh()
 
     def print_header(self, data):
-        max_val = 100*1024**2
 
         x = self.scr.getmaxyx()[1]
         marks = x//15
@@ -24,7 +23,7 @@ class Screen:
         line = "└"
         for i in range(1, marks+1):
             l = int(x/marks*i)
-            unit += pad(format_bw(max_val/marks*i), len(unit)-l)
+            unit += pad(format_bw(data["max"]/marks*i), len(unit)-l)
             line += pad("┴", len(line)-l, "─")
         self.scr.addstr(0, 0, unit)
         self.scr.addstr(1, 0, line)
