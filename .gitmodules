@@ -1,0 +1,3 @@
+[submodule "netcontrol"]
+	path = netcontrol
+	url = https://github.com/InsaLan/langate2000-netcontrol
