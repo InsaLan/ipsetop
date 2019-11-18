@@ -35,9 +35,9 @@ class Importer:
             if len(users):
                 start_vpn = min((users[k] for k in users), key=lambda u: u.mark if u.mark is not None else 2**32).mark
                 end_vpn = max((users[k] for k in users), key=lambda u: u.mark if u.mark is not None else 0).mark
-                return {mark: "vpn{}".format(i) for i,mark in enumerate(range(start_vpn, end_vpn+1))}
-            else:
-                return {}
+                if start_vpn is not None:
+                    return {mark: "vpn{}".format(i) for i,mark in enumerate(range(start_vpn, end_vpn+1))}
+            return {}
 
 
 
@@ -53,6 +53,8 @@ class Importer:
         measurements = [self.data[t] for t in time]
 
         users_usage = {}
+        vpn_usage = {}
+        total_down,total_up = (0,0,0),(0,0,0)
         for ip in now:
             user_now = now[ip]
             name = user_now.name or ip
@@ -66,13 +68,15 @@ class Importer:
             down, up = zip(*[delta(m.get(ip)) for m in measurements])
 
             (down_prev, up_prev, vpn) = users_usage.get(name, ((0,0,0), (0,0,0),set()))
+            (vpn_down, vpn_up) = vpn_usage.get(user_now.mark, ((0,0,0), (0,0,0)))
             def update(old, measure):
                 return tuple(o+m for o,m in zip(old, measure))
             vpn.add(user_now.mark)
             users_usage[name] = (update(down_prev, down), update(up_prev, up), vpn)
+            vpn_usage[user_now.mark] = (update(vpn_down, down), update(vpn_up, up))
+            total_down,total_up = update(total_down, down),update(total_up, up)
 
-        max_val = self.config["max_user"]
-        def bar(x):
+        def bar(x, max_val):
             t,_ = self.config["sort_by"]
             scalled = tuple(x[i]/(-1-time[i] or 1) for i in range(3))
             if t == "1m":
@@ -81,40 +85,31 @@ class Importer:
                 p = scalled[1]/max_val
             elif t == "1s":
                 p = scalled[2]/max_val
+            if p>1:
+                p=0.99
             return (p, scalled[0], scalled[1], scalled[2])
-
 
         def cmp(x):
             _,dire = self.config["sort_by"]
             if dire == "down":
                 d = users_usage[x][0]
-            elif dire == "down":
+            elif dire == "up":
                 d = users_usage[x][1]
-            return -bar(d)[0]
-
-
-
+            return bar(d, -1)[0:1] + tuple(-v for v in bar(d, 1)[:0:-1])
 
         vpn_map = self.vpn_map
-        def entry_to_line(user):
+        def user_to_line(user):
             data = users_usage[user]
-            vpnstr = "&".join(vpn_map[vpn] for vpn in data[2])
-            return user, bar(data[0]), bar(data[1]), vpnstr
-        user_lines = [entry_to_line(user)  for user in sorted(users_usage, key=cmp)]
-
+            vpnstr = "&".join(vpn_map.get(vpn, "<no_vpn>") for vpn in data[2])
+            return user, bar(data[0], self.config["max_user"]), bar(data[1], self.config["max_user"]), vpnstr
+        def vpn_to_line(vpn, total=False):
+            max_val = self.config["max_vpn"]
+            name = vpn_map.get(vpn, "<no_vpn>")
+            return name, bar(vpn_usage[vpn][0], max_val), bar(vpn_usage[vpn][1], max_val)
+        total = "total", bar(total_down, self.config["max_total"]), bar(total_up, self.config["max_total"])
         data = {}
-        data["users"] = user_lines
-        data["vpn"] = [(vpn, (0,0,0,0), (0,0,0,0)) for vpn in self.vpn_map.values()] + [("total", (0,0,0,0), (0,0,0,0))]
-
-        [
-            ("player1", (0.3,1,2,81.2*1024**2), (0.9, 3,4,17.1*1024**2), "vpn0"),
-            ("player2", (0.2,5,6,45.2*1024), (0.1, 7,8,2000), "vpn1")
-        ]
-        [
-            ("vpn0", (0.3, 1,2,81.2*1024**2), (0.8, 3,4,17.1*1024**2)),
-            ("vpn1", (0.2, 5,6,45.2*1024), (0.1, 7,8,2000)),
-            ("total", (0.5, 7,8,81.2*1024**2), (0.8,10,12,17.1*1024**2))
-        ]
+        data["users"] = [user_to_line(user)  for user in sorted(users_usage, key=cmp)]
+        data["vpn"] = sorted([vpn_to_line(vpn) for vpn in vpn_usage]) + [total]
 
         if self.config["max_user"] is None:
             max_bw = 0
