@@ -10,14 +10,14 @@ from time import time
 import re
 
 class Net:
-    def __init__(self, interface="tun+"):
+    def __init__(self, id, interfaces, invert=False):
         self.id = id
-        self.interface = interface
-        self.ipset = Ipset("ipsetop-" + interface)
-        self.reverse = Ipset("ipsetop-reverse-" + interface)
+        self.invert = invert
+        self.interfaces = interfaces
+        self.ipset = Ipset("ipsetop-" + id)
+        self.reverse = Ipset("ipsetop-reverse-" + id)
         self.ipset.create("hash:ip,port,ip", skbinfo=False, comment=False)
         self.reverse.create("hash:ip,port,ip", skbinfo=False, comment=False)
-        self.logs = list()
         for cmd in self.generate_iptables(stop = True):
             while os.system(cmd) == 0:
                 pass
@@ -27,8 +27,11 @@ class Net:
 
     def generate_iptables(self, stop = False):
         verb = "-D" if stop else "-I"
-        return ["iptables {0} POSTROUTING -t mangle -o {1} -m set ! --match-set ipsetop-{1} src,dst,dst -j SET --add-set ipsetop-{1} src,dst,dst".format(verb, self.interface),
-        "iptables {0} PREROUTING -t mangle -i {1} -m set ! --match-set ipsetop-{1} dst,src,src -j SET --add-set ipsetop-reverse-{1} dst,src,src".format(verb, self.interface)]
+        normal,reverse = ("","reverse-") if not self.invert else ("reverse-","")
+        
+        for interface in self.interfaces:
+            yield "iptables {0} POSTROUTING -t mangle -o {1} -m set ! --match-set ipsetop-{2} src,dst,dst -j SET --add-set ipsetop-{3}{2} src,dst,dst".format(verb, interface, self.id, normal)
+            yield "iptables {0} PREROUTING  -t mangle -i {1} -m set ! --match-set ipsetop-{2} dst,src,src -j SET --add-set ipsetop-{3}{2} dst,src,src".format(verb, interface, self.id, reverse)
 
 
     def clear(self):
@@ -42,7 +45,7 @@ class Net:
         for entry in entries:
             elem = entry.elem
             up = entry.bytes or 0
-            source, destination, port =  elem.split(",")
+            source, port, destination =  elem.split(",")
             users[elem] = Flow(source, destination, port, up=up)
 
         rev_entries = self.reverse.list().entries

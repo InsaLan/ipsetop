@@ -67,13 +67,13 @@ class Screen:
 
         draw_width = x-27
 
-        name, (df, d1, d2, d3), (uf, u1, u2 , u3), vpn = user
+        name, (df, d1, d2, d3), (uf, u1, u2 , u3) = user
 
         down_bw = pad(format_bw(d1), -9) + pad(format_bw(d2), -9) + pad(format_bw(d3), -9)
         up_bw = pad(format_bw(u1), -9) + pad(format_bw(u2), -9) + pad(format_bw(u3), -9)
 
         down_text = pad(pad(name, -draw_width//4), draw_width//2-1) + "<="
-        down_text += pad(vpn, -draw_width//4)
+        down_text += pad("nothing yet", -draw_width//4)
         down_text += pad(down_bw, len(down_text)-x)
         up_text = pad("", draw_width//2-1) + "=>"
         up_text += pad(up_bw, len(up_text)-x)
