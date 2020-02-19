@@ -4,6 +4,7 @@ import sys
 
 from screen import Screen
 from importer import Importer
+from api import run_api
 
 
 import time
@@ -11,7 +12,7 @@ import time
 def show_help():
     print("""
 ipsetop: mesure bandwidth usage using ipsets
-usage : ipsetop [args] <interface> [inteface...]
+usage : ipsetop [args] <interface> [interface...]
 args :
     -h show this help.
     -d run with a rest api on 1312 and disable tui. This does not run ipsetop in daemon.
@@ -20,21 +21,19 @@ args :
 api :
     all request should be made to /
     filtering and grouping can be done via parameters
-    groupe by source ip and port : /?groupe-by=sip,port
+    groupe by source ip and port : /?group-by=sip,port
     filter only https traffic to 1.1.1.1 : /?filter=dip:1.1.1.1,port:tcp:443
     note : this is different from /?filter=dip:1.1.1.1&filter=port:tcp:443
     which show both everything https and everything going to 1.1.1.1
     """)
 
 def daemon(interfaces, reverse=False):
-    print(interfaces, reverse)
     importer = Importer(interfaces, reverse, "daemon")
     try:
-        while True:
-            time.sleep(1)
-            print(importer.get_data())
+        run_api(importer)
     except KeyboardInterrupt:
-        importer.ipset.delete()
+        pass
+    importer.ipset.delete()
         
     
 

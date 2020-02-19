@@ -30,8 +30,8 @@ class Net:
         normal,reverse = ("","reverse-") if not self.invert else ("reverse-","")
         
         for interface in self.interfaces:
-            yield "iptables {0} POSTROUTING -t mangle -o {1} -m set ! --match-set ipsetop-{2} src,dst,dst -j SET --add-set ipsetop-{3}{2} src,dst,dst".format(verb, interface, self.id, normal)
-            yield "iptables {0} PREROUTING  -t mangle -i {1} -m set ! --match-set ipsetop-{2} dst,src,src -j SET --add-set ipsetop-{3}{2} dst,src,src".format(verb, interface, self.id, reverse)
+            yield "iptables {0} POSTROUTING -t mangle -o {1} -m set ! --match-set ipsetop-{3}{2} src,dst,dst -j SET --add-set ipsetop-{3}{2} src,dst,dst".format(verb, interface, self.id, normal)
+            yield "iptables {0} PREROUTING  -t mangle -i {1} -m set ! --match-set ipsetop-{3}{2} dst,src,src -j SET --add-set ipsetop-{3}{2} dst,src,src".format(verb, interface, self.id, reverse)
 
 
     def clear(self):
