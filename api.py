@@ -20,7 +20,6 @@ class Api(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(bytes(err, "utf-8"))
             return
-        print({"group": group, "filter": filt})
         filtered = self.filter(filt)
         grouped = self.group(group, filtered)
         self.send_response(200)
@@ -74,7 +73,7 @@ class Api(BaseHTTPRequestHandler):
                     f.append((kind,value))
                 filt.append(f)
             else:
-                return None,None,"Unknown parameter : " + kind
+                return None,None,"Unknown parameter : " + cmd
         if group is None:
             group = ["sip","port","dip"]
         return group,filt,None
