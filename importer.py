@@ -1,8 +1,9 @@
+import sys
 import threading
 import time
-from managed import Net
 from random import randint
-import sys
+
+from managed import Net
 
 
 class Importer:

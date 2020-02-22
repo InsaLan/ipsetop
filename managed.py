@@ -5,7 +5,7 @@ try:
     from ipset import Ipset,Entry
 except ModuleNotFoundError:
     from .ipset import Ipset,Entry
-import os
+from subprocess import run
 from time import time
 import re
 
@@ -19,10 +19,10 @@ class Net:
         self.ipset.create("hash:ip,port,ip", skbinfo=False, comment=False)
         self.reverse.create("hash:ip,port,ip", skbinfo=False, comment=False)
         for cmd in self.generate_iptables(stop = True):
-            while os.system(cmd) == 0:
+            while run(cmd, shell=True, capture_output=True).returncode == 0:
                 pass
         for cmd in self.generate_iptables():
-            os.system(cmd)
+            run(cmd, shell=True)
 
 
     def generate_iptables(self, stop = False):
@@ -57,7 +57,7 @@ class Net:
 
     def delete(self):
         for cmd in self.generate_iptables(stop=True):
-            os.system(cmd)
+            run(cmd, shell=True)
         self.ipset.destroy()
         self.reverse.destroy()
 
