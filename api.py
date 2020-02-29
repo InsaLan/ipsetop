@@ -10,10 +10,17 @@ class Api(BaseHTTPRequestHandler):
     importer = None
     def do_GET(self):
         path = urlparse(self.path)
-        if path.path != "/":
+        if path.path == "/":
+            self.index()
+        elif path.path == "/metrics":
+            self.metrics()
+        else:
             self.send_response(404)
             self.end_headers()
             return
+
+    def index(self):
+        path = urlparse(self.path)
         group,filt,err = self.parse_query(path.query)
         if err:
             self.send_response(400)
@@ -26,6 +33,20 @@ class Api(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.end_headers()
         self.wfile.write(bytes(json.dumps(grouped), "utf-8"))
+
+    def metrics(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain; charset=utf-8")
+        self.end_headers()
+        data = Api.importer.get_raw_data()
+        for flow in data:
+            sip,port,dip = flow.split(",")
+            up = data[flow].up
+            down = data[flow].down
+            msg  = """ipsetop_tx_byte{source="%s", destination="%s", port="%s"} %s\n""" % (sip, dip, port, str(up))
+            msg += """ipsetop_rx_byte{source="%s", destination="%s", port="%s"} %s\n""" % (sip, dip, port, str(down))
+            self.wfile.write(bytes(msg, "utf-8"))
+
 
     def group(self, group, data):
         res = {}

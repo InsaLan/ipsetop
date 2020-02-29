@@ -35,7 +35,6 @@ class Importer:
         measurements = [self.data[t] for t in self.time]
 
         flows_usage = {}
-        total_down,total_up = (0,0,0),(0,0,0)
         for flow in now:
             flow_now = now[flow]
             flow_id = (flow_now.source, flow_now.port, flow_now.destination)
@@ -51,3 +50,6 @@ class Importer:
             flows_usage[flow_id] = down, up
 
         return flows_usage
+
+    def get_raw_data(self):
+        return self.data[-1]
